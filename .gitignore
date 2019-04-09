@@ -3,3 +3,4 @@
 .vscode
 .idea
 *.retry
+vars/all.yml
