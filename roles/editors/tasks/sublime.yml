@@ -1,0 +1,37 @@
+- set_fact:
+    repo_name: "{{ item.split('/')[-1].split('.')[0] }}"
+
+- set_fact:
+    repo_user: "{{ item.split('/')[-2].split(':')[-1] }}"
+
+- set_fact:
+    repo_dir: "{{ [projects_dir, repo_name] | list | join('/') }}"
+
+- name: Check whether {{ repo_name }} Sublime project file exists
+  stat:
+    path: "{{ repo_dir }}.sublime-project"
+  register: projects_config
+  changed_when: not projects_config.stat.exists
+
+- shell: echo "{}" > {{ repo_dir }}.sublime-project
+  when: projects_config.changed
+
+- name: Check whether {{ repo_name }} has the correct directory
+  json_patch:
+    src: "{{ repo_dir }}.sublime-project"
+    operations:
+      - op: test
+        path: "/folders/0"
+        value: "{{ repo_name }}"
+  register: repo_sublime
+  ignore_errors: yes
+
+- name: Add {{ repo_name }} repository as a project in Sublime
+  json_patch:
+    src: "{{ repo_dir }}.sublime-project"
+    operations:
+      - op: add
+        path: "/folders"
+        value:
+          - path: "{{ repo_name }}"
+  when: not repo_sublime.tested

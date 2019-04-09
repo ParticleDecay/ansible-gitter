@@ -1,0 +1,27 @@
+- name: Check for VS Code install
+  shell: command -v code > /dev/null 2>&1
+  register: vscode_exists
+  changed_when: false
+  ignore_errors: yes
+  tags:
+    - vscode
+
+- include_tasks: vscode.yml
+  with_items: "{{ url.split(',') }}"
+  when: configure_vscode and vscode_exists.rc == 0
+  tags:
+    - vscode
+
+- name: Check for Sublime Text install
+  shell: command -v subl > /dev/null 2>&1
+  register: sublime_exists
+  changed_when: false
+  ignore_errors: yes
+  tags:
+    - sublime
+
+- include_tasks: sublime.yml
+  with_items: "{{ url.split(',') }}"
+  when: configure_sublime and sublime_exists.rc == 0
+  tags:
+    - sublime

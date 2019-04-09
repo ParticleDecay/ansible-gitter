@@ -1,0 +1,16 @@
+- hosts: all
+  connection: local
+  tasks:
+    - include_role:
+        name: setup
+      tags:
+        - git
+    - include_role:
+        name: clone
+      tags:
+        - git
+    - include_role:
+        name: editors
+      tags:
+        - editors
+

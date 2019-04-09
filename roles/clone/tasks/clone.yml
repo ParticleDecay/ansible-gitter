@@ -1,0 +1,38 @@
+- set_fact:
+    repo_name: "{{ item.split('/')[-1].split('.')[0] }}"
+
+- set_fact:
+    repo_user: "{{ item.split('/')[-2].split(':')[-1] }}"
+
+- set_fact:
+    repo_dir: "{{ [projects_dir, repo_name] | list | join('/') }}"
+
+- set_fact:
+    github_username: "{{ github_username | default(repo_user) }}"
+
+- name: Ensure {{ repo_user }} repo exists locally
+  git:
+    repo: "{{ item }}"
+    dest: "{{ repo_dir }}"
+    remote: "{{ 'upstream' if github_username and repo_user != github_username else 'origin' }}"
+    update: no
+
+- name: Check whether origin remote exists in {{ repo_name }} repo
+  shell: "git -C {{ repo_dir }} remote | awk '$1 == \"origin\"'"
+  register: git_remote
+  changed_when: git_remote.stdout != "origin"
+
+- name: Add the origin remote to {{ repo_name }} repo
+  shell: "git -C {{ repo_dir }} remote add origin {{ item | regex_replace('(git@|https\\://)([^:/]+)([:/])[^/:]+(/(?!/)[^/]+)$', '\\1\\2\\3' + github_username + '\\4') }}"
+  when: git_remote.stdout != "origin"
+
+- name: Ensure appropriate email for {{ repo_name }} repo
+  git_config:
+    scope: local
+    repo: "{{ repo_dir }}"
+    name: user.email
+    value: "{{ github_email }}"
+  when: github_email is defined
+
+- include_tasks: gpg.yml
+  when: github_email is defined

@@ -1,0 +1,66 @@
+- set_fact:
+    repo_name: "{{ item.split('/')[-1].split('.')[0] }}"
+
+- set_fact:
+    repo_user: "{{ item.split('/')[-2].split(':')[-1] }}"
+
+- set_fact:
+    repo_dir: "{{ [projects_dir, repo_name] | list | join('/') }}"
+
+- name: Check for Project Manager VS Code extension
+  shell: code --list-extensions | grep alefragnani.project-manager
+  register: code_pm_ext
+  changed_when: false
+  ignore_errors: yes
+
+- name: Install Project Manager VS Code extension
+  command:
+  args:
+    argv:
+      - code
+      - "--install-extension"
+      - alefragnani.project-manager
+  when: code_pm_ext.rc == 1
+
+- name: Ensure VS Code user directories exist
+  file:
+    path: "{{ ansible_env.HOME }}/.config/{{ dir }}"
+    state: directory
+  loop_control:
+    loop_var: dir
+  with_items:
+    - Code
+    - Code/User
+
+- name: Ensure VS Code project config exists
+  stat:
+    path: "{{ ansible_env.HOME }}/.config/Code/User/projects.json"
+  register: projects_config
+  changed_when: not projects_config.stat.exists
+
+- shell: echo "[]" > {{ ansible_env.HOME }}/.config/Code/User/projects.json
+  when: projects_config.changed
+
+- name: Check for {{ repo_name }} repository in VS Code project config
+  json_patch:
+    src: "{{ ansible_env.HOME }}/.config/Code/User/projects.json"
+    operations:
+      - op: test
+        path: "/*/rootPath"
+        value: "{{ repo_dir }}"
+  register: repo_vscode
+  changed_when: not repo_vscode.tested
+
+- name: Add {{ repo_name }} repository as a project in VS Code
+  json_patch:
+    src: "{{ ansible_env.HOME }}/.config/Code/User/projects.json"
+    operations:
+      - op: add
+        path: "/-"
+        value:
+          paths: []
+          group: ""
+          name: "{{ repo_name }}"
+          rootPath: "{{ repo_dir }}"
+          enabled: true
+  when: not repo_vscode.tested

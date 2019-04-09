@@ -1,0 +1,13 @@
+- name: Find matching GPG key for {{ github_email }}
+  shell: gpg --fingerprint {{ github_email }} | awk '/^ / {print $7$8$9$10}' | head -1
+  register: gpg_fingerprint
+  changed_when: false
+  ignore_errors: yes
+
+- name: Ensure appropriate GPG signing key for {{ repo_name }} repo
+  git_config:
+    scope: local
+    repo: "{{ repo_dir }}"
+    name: user.signingkey
+    value: "{{ gpg_fingerprint.stdout }}"
+  when: gpg_fingerprint is defined and gpg_fingerprint.rc == 0

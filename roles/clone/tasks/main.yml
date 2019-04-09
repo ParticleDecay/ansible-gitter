@@ -1,0 +1,4 @@
+- include_tasks: clone.yml
+  with_items: "{{ url.split(',') }}"
+  tags:
+    - git
