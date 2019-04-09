@@ -1,8 +1,14 @@
+- set_fact:
+    configure_vscode: "{{ configure_vscode | default(false) }}"
+- set_fact:
+    configure_sublime: "{{ configure_sublime | default(false) }}"
+
 - name: Check for VS Code install
   shell: command -v code > /dev/null 2>&1
   register: vscode_exists
   changed_when: false
   ignore_errors: yes
+  when: configure_vscode
   tags:
     - vscode
 
@@ -17,6 +23,7 @@
   register: sublime_exists
   changed_when: false
   ignore_errors: yes
+  when: configure_sublime
   tags:
     - sublime
 

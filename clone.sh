@@ -28,7 +28,6 @@ join_by() {
   echo "$*"
 }
 
-configure_editors=no
 args=()
 while getopts ":hcu:e:p:" opt
 do
@@ -37,7 +36,7 @@ do
       help
       ;;
     c)
-      configure_editors=yes
+      args+=( -e "configure_vscode=yes" -e "configure_sublime=yes" )
       ;;
     u)
       args+=( -e github_username=$OPTARG )
@@ -57,7 +56,6 @@ done
 shift $((OPTIND -1))
 
 # set configuration of editors
-args+=( -e configure_vscode=$configure_editors -e configure_sublime=$configure_editors )
 
 if [ ! -z "$1" ]
 then
@@ -67,4 +65,9 @@ else
   help 2
 fi
 
-ansible-playbook -i inv/hosts.yml -e @vars/all.yml main.yml $(join_by " " "${args[@]}")
+if [ -f vars/all.yml ]
+then
+  args+=( -e @vars/all.yml )
+fi
+
+ansible-playbook -i inv/hosts.yml main.yml $(join_by " " "${args[@]}")
