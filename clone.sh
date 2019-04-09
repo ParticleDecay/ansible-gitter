@@ -28,6 +28,7 @@ join_by() {
   echo "$*"
 }
 
+configure_editors=no
 args=()
 while getopts ":hcu:e:p:" opt
 do
@@ -36,7 +37,7 @@ do
       help
       ;;
     c)
-      args+=( -e configure_vscode=yes -e configure_sublime=yes )
+      configure_editors=yes
       ;;
     u)
       args+=( -e github_username=$OPTARG )
@@ -54,6 +55,9 @@ do
   esac
 done
 shift $((OPTIND -1))
+
+# set configuration of editors
+args+=( -e configure_vscode=$configure_editors -e configure_sublime=$configure_editors )
 
 if [ ! -z "$1" ]
 then
