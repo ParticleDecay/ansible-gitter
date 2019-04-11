@@ -29,6 +29,7 @@
 - name: Add {{ repo_name }} repository as a project in Sublime
   json_patch:
     src: "{{ repo_dir }}.sublime-project"
+    pretty: yes
     operations:
       - op: add
         path: "/folders"

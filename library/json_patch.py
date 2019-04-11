@@ -44,6 +44,9 @@ options:
     unsafe_writes:
         description:
             - Allow Ansible to fall back to unsafe methods of writing files (some systems do not support atomic operations)
+    pretty:
+        description:
+            - Write pretty-print JSON when file is changed
 '''
 
 
@@ -98,6 +101,7 @@ EXAMPLES = r'''
 - name: remove the first object in the "baz" list of fruits
   json_patch:
     src: "test.json"
+    pretty: yes
     operations:
       - op: remove
         path: "/2/baz/0"
@@ -195,9 +199,10 @@ class PatchManager(object):
             self.module.fail_json(msg=str(e))
 
         self.do_backup = self.module.params.get('backup', False)
+        self.pretty_print = self.module.params.get('pretty', False)
 
     def run(self):
-        changed, tested = self.patcher.patch(self.module.check_mode)
+        changed, tested = self.patcher.patch()
         result = {'changed': changed}
         if tested is not None:
             result['tested'] = tested
@@ -211,12 +216,20 @@ class PatchManager(object):
 
     def write(self):
         result = {'dest': self.outfile}
+
+        if self.module.check_mode:  # stop here before doing anything permanent
+            return result
+
+        dump_kwargs = {}
+        if self.pretty_print:
+            dump_kwargs.update({'indent': 4, 'separators': (',', ': ')})
+
         if self.do_backup:  # backup first if needed
             result.update(self.backup())
 
         tmpfd, tmpfile = tempfile.mkstemp()
         with open(tmpfile, "w") as f:
-            f.write(json.dumps(self.patcher.obj))
+            f.write(json.dumps(self.patcher.obj, **dump_kwargs))
 
         self.module.atomic_move(tmpfile,
                                 to_native(os.path.realpath(to_bytes(self.outfile, errors='surrogate_or_strict')), errors='surrogate_or_strict'),
@@ -259,7 +272,7 @@ class JSONPatcher(object):
             if 'value' not in members:
                 raise ValueError("'%s' is an 'add' but does not have a 'value'" % repr(members))
 
-    def patch(self, check_mode=False):
+    def patch(self):
         """Perform all of the given patch operations."""
         modified = None  # whether we modified the object after all operations
         test_result = None
@@ -277,7 +290,7 @@ class JSONPatcher(object):
             new_obj, changed, tested = getattr(self, op)(**patch)
             if changed is not None or op == "remove":  # 'remove' will fail if we don't actually remove anything
                 modified = bool(changed)
-                if modified is True and check_mode:
+                if modified is True:
                     self.obj = new_obj
             if tested is not None:
                 test_result = False if test_result is False else tested  # one false test fails everything
@@ -467,6 +480,7 @@ def main():
             operations=dict(required=True, type='list'),
             backup=dict(required=False, default=False, type='bool'),
             unsafe_writes=dict(required=False, default=False, type='bool'),
+            pretty=dict(required=False, default=False, type='bool'),
         ),
         supports_check_mode=True
     )

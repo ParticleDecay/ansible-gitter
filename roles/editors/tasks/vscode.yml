@@ -54,6 +54,7 @@
 - name: Add {{ repo_name }} repository as a project in VS Code
   json_patch:
     src: "{{ ansible_env.HOME }}/.config/Code/User/projects.json"
+    pretty: yes
     operations:
       - op: add
         path: "/-"
