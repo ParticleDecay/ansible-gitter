@@ -36,7 +36,7 @@ do
       help
       ;;
     c)
-      args+=( -e "configure_vscode=yes" -e "configure_sublime=yes" )
+      args+=( -e "configure_vscode=true" -e "configure_sublime=true" )
       ;;
     u)
       args+=( -e github_username=$OPTARG )
