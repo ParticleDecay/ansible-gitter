@@ -28,6 +28,17 @@ join_by() {
   echo "$*"
 }
 
+read_vars() {
+	if [ -f vars/all.yml ]
+	then
+    source <(sed -e 's/:[^:\/\/]/="/g;s/$/"/g;s/ *=/=/g' vars/all.yml)
+	fi
+}
+
+# Read vars that are in the vars file first,
+# but anything set on the CLI will overwrite those
+read_vars
+
 args=()
 while getopts ":hcu:e:p:" opt
 do
@@ -36,16 +47,17 @@ do
       help
       ;;
     c)
-      args+=( -e "configure_vscode=true" -e "configure_sublime=true" )
+			configure_vscode=true
+			configure_sublime=true
       ;;
     u)
-      args+=( -e github_username=$OPTARG )
+			github_username=$OPTARG
       ;;
     e)
-      args+=( -e github_email=$OPTARG )
+			github_email=$OPTARG
       ;;
     p)
-      args+=( -e projects_dir=$OPTARG )
+			projects_dir=$OPTARG
       ;;
     \?)
       echo "Invalid option: $OPTARG" 1>&2
@@ -55,19 +67,22 @@ do
 done
 shift $((OPTIND -1))
 
-# set configuration of editors
-
 if [ ! -z "$1" ]
 then
-  args+=( -e url=$1 )
+	url="$1"
 else
   echo "You must provide a URL to clone."
   help 2
 fi
 
-if [ -f vars/all.yml ]
-then
-  args+=( -e @vars/all.yml )
-fi
+# All supported vars
+args=(
+	-e "projects_dir=$projects_dir"
+	-e "github_username=$github_username"
+	-e "github_email=$github_email"
+	-e "configure_vscode=$configure_vscode"
+	-e "configure_sublime=$configure_sublime"
+	-e "url=$url"
+)
 
 ansible-playbook -i inv/hosts.yml main.yml $(join_by " " "${args[@]}")
