@@ -31,7 +31,7 @@ join_by() {
 read_vars() {
 	if [ -f vars/all.yml ]
 	then
-    source <(sed -e 's/:[^:\/\/]/="/g;s/$/"/g;s/ *=/=/g' vars/all.yml)
+    $(sed -e 's/:[^:\/\/]/="/g;s/$/"/g;s/ *=/=/g' -e 's/^/export /' vars/all.yml)
 	fi
 }
 
