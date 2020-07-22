@@ -1,7 +1,7 @@
 #!/bin/bash
 
 help() {
-  echo "usage: `basename $0` [-hc] [-u github_username] [-e github_email] [-p projects_dir] <repository_url>"
+  echo "usage: `basename $0` [-hcf] [-u github_username] [-e github_email] [-p projects_dir] <repository_url>"
   echo ""
   echo "Run the playbook for cloning the given <repository_url>."
   echo ""
@@ -11,6 +11,7 @@ help() {
   echo "optional arguments:"
   printf "  -h\t\t\tshow this help message and exit\n"
   printf "  -c\t\t\tconfigure any existing code editors (VS Code, Sublime)\n"
+  printf "  -f\t\t\tfork the target repo before cloning (must have 'hub' installed)\n"
   printf "  -u github_username\tyour GitHub username (useful for detecting forks)\n"
   printf "  -e github_email\tyour GitHub email (useful for multi-account setups and GPG keys)\n"
   printf "  -p projects_dir\tfull path to directory where projects are stored\n"
@@ -40,7 +41,7 @@ read_vars() {
 read_vars
 
 args=()
-while getopts ":hcu:e:p:" opt
+while getopts ":hcfu:e:p:" opt
 do
   case ${opt} in
     h)
@@ -49,6 +50,9 @@ do
     c)
 			configure_vscode=true
 			configure_sublime=true
+      ;;
+    f)
+      fork_it=true
       ;;
     u)
 			github_username=$OPTARG
@@ -73,6 +77,16 @@ then
 else
   echo "You must provide a URL to clone."
   help 2
+fi
+
+if [ ! -z $fork_it ]; then
+  hub_cmd=$(which hub)
+  if [ -z $hub_cmd ]; then
+    echo "You must have the 'hub' command installed and in your PATH. Visit https://github.com/github/hub."
+    exit 1
+  fi
+
+  hub fork --remote-name=origin $url
 fi
 
 # All supported vars
